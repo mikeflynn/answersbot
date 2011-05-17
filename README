@@ -4,4 +4,12 @@ Answers Bot is...
 1. A Ruby Jabber client using XMPP4r
 2. A little project to help me learn Ruby better.
 
+To Do:
+1. Get better and responding to greetings.
+2. Respond to "thank you"s
+3. Ask if the question was what they wanted (and log it)
+4. Ask if they want related data (be able to target affirmative and negative responses)
+5. Add in more APIs
+6. Ask for answers to related questions or questions based on their previous topics.
+7. Properly daemonize it.
 More to come!
