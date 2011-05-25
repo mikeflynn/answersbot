@@ -5,3 +5,8 @@ nickname: answerbot
 photo: icon.png
 status: Ready for your questions!
 priority: 1
+
+api: {  file: yahoo,
+	name: Yahoo Answers!,
+	key: aldkjalskfjasldfkjaslfkjasdflkasjflsdajk }
+
