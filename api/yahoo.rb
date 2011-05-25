@@ -2,13 +2,14 @@ require 'rubygems'
 require 'net/http'
 require 'json'
 require 'CGI'
+require 'yaml'
 
 class Yahoo
-	attr_reader :app_id
+	attr_reader :app_id, :app_name
 
-	def initialize
-		@app_id = 'ulZmgXzV34FFfbVDyVqkoQFKL8FPASGBRaItgekK3PBPD0jj29lEDLM9BAZU9RvK'
-		
+	def initialize(config)
+		@app_id = config["key"]
+		@app_name = config["name"]
 	end
 	
 	def search(query, limit = 1)
@@ -42,8 +43,6 @@ class Yahoo
 		else
 			data = nil
 		end
-		
-		pp data
 		
 		return data
 	end
