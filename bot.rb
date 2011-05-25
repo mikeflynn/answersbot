@@ -12,7 +12,7 @@ require 'db/mongolog'
 class Chatbot
 	include Jabber
 	
-	attr_accessor :jid, :password, :fullname, :nickname, :photo, :status, :admins, :priority
+	attr_accessor :jid, :password, :fullname, :nickname, :photo, :status, :admins, :priority, :api
 	attr_reader :client, :roster
 	
 	def initialize(config, debug = false)
@@ -26,6 +26,8 @@ class Chatbot
 		self.status = config["status"]
 		self.priority = config["priority"]
 		
+		self.api = config["api"]
+
 		output("Connecting as "+@fullname+"...")
 		
 		@client = Client.new(JID::new(self.jid + '/chatbot'))
@@ -72,7 +74,7 @@ class Chatbot
 			if(t.body.to_s != '')
 				rqsttype = request_type(t)
 			
-				output "Incoming "+t.type.to_s+" message from \""+t.from.to_s+"\": " + t.body.to_s				
+				output "Incoming "+t.type.to_s+" message from \""+clean_username(t.from)+"\": " + t.body.to_s
 				output "Type: "+rqsttype
 
 				log = {
@@ -94,13 +96,12 @@ class Chatbot
 					send_message(t.from.to_s, response[rand(response.size)])
 					
 					th = Thread.new do
-						data_source = 'yahoo'
-						data = lookup_answer(t.body.to_s, data_source)
+						data = lookup_answer(t.body.to_s, self.api)
 						
-						log["question"] = {
-							'source'	=> data_source,
+						log["answer"] = {
+							'source'	=> self.api['name'],
 							'return'	=> data
-						}						
+						}
 						
 						if(data.nil?)
 							message = "Whoops! We couldn't find an answer for that! Sorry"
@@ -117,6 +118,14 @@ class Chatbot
 					send_message(t.from.to_s, message)
 				when "shutdown"
 					signoff
+				when "personal"
+					response = [
+						"Don't worry about me. What's on your mind?",
+						"I'm not really sure. The internet can't search my heart...yet.",
+						"Dude. I'm a computer.",
+						"I think that's a little personal isn't it?!"
+					]
+					send_message(t.from.to_s, response[rand(response.size)])
 				when "greeting"
 					response = [
 						"Hi!",
@@ -137,8 +146,8 @@ class Chatbot
 					send_message(t.from.to_s, response[rand(response.size)])
 				end
 				
-				mongolog = Mongolog.new('jabber')
-				mongolog.log(log)
+				#mongolog = Mongolog.new('jabber')
+				#mongolog.log(log)
 			end
 		end
 	end
@@ -216,9 +225,25 @@ class Chatbot
 		
 		# Is it a question?
 		if(body.match(/.+\?$/i))
-			return "question"
-		end	
+			# About me?
+			if(body.match(/\b(you|your)\b/))
+				return "personal"
+			else
+				return "question"
+			end
+		end
+
+		# Affirmatives?
+		if(body.match(/\b(yes|yup|sure)\b/))
+			return "affirmative"
+		end
+
+		# Negatives?
+		if(body.match(/\b(no|nope|not)\b/))
+			return "negative"
+		end
 		
+		# Admin shutdown command.
 		if(body == "shutdown" && @admins.include?(clean_username(request.from)))
 			return "shutdown"
 		end
@@ -232,11 +257,11 @@ class Chatbot
 		return from_ar[0]
 	end
 	
-	def lookup_answer(question, api = 'yahoo')
-		output "Requesting answer from "+api
-	
-		require "api/"+api
-		obj = Object::const_get(api.capitalize).new
+	def lookup_answer(question, api)
+		output "Requesting answer from "+api["name"]
+
+		require "api/"+api["file"]
+		obj = Object::const_get(api["file"].capitalize).new(api)
 		return obj.search(question)
 	end
 	
